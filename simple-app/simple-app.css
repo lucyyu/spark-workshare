@@ -1,0 +1,147 @@
+/* CSS declarations go here */
+
+body {
+	font-family: 'Lato', sans-serif;
+	color: #A1A1A1;
+	font-weight:300;
+	font-size:16px;
+}
+
+#left {
+	float:left;
+	width: 40%;
+	height: 500px;
+	padding-left:50px;
+}
+
+#right {
+	float:left;
+	width: 50%;
+	height: 500px;
+	padding-right:50px;
+}
+
+#container-graph {
+}
+
+#title {
+	text-align: center;
+	color: #81ADC7;
+	margin-bottom:20px;
+}
+
+h1 {
+	font-family: 'Lato', sans-serif;
+	font-size: 40px;
+	font-weight:300;
+}
+
+.form-style-5{
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 16px;
+}
+
+.row {
+    height: 50px;
+}
+
+.form-left {
+    padding: 7px 0px;
+    text-align: left;
+    float:left;
+    width: 100px;
+}
+
+.form-right {
+    float: left;
+}
+
+.form-style-5 input[type="text"],
+.form-style-5 textarea,
+.form-style-5 select {
+	vertical-align: middle;
+    font-family: Georgia, "Times New Roman", Times, serif;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    outline: 0;
+    height: 30px;
+    width:100px;
+    padding: 0px 7px; 
+    margin: 0px 3px;
+    background-color: #EBF1F2;
+    color:#8a97a0;
+    -webkit-box-shadow: 2px 2px 1px rgba(0,0,0,0.03) inset;
+    box-shadow: 2px 2px 1px rgba(0,0,0,0.03) inset;
+}
+
+.form-style-5 input[type="text"]:focus,
+.form-style-5 textarea:focus,
+.form-style-5 select:focus{
+    background: #E1E7EB;
+}
+
+.form-style-5 input[type="text"]:disabled,
+.form-style-5 select:disabled{
+    background: #D5DCE0;
+    color: #C0C9CF;
+}
+
+
+.form-style-5 input[type="submit"],
+.form-style-5 input[type="button"]
+{
+	vertical-align: middle;
+    height: 30px;
+    border-radius: 4px;
+    color: #FFFFFF;
+    background: #C3CFD6;
+    font-size: 16px;
+    padding: 0px 20px;
+    margin-right: 10px;
+    text-align: center;
+    border: 0px solid #16a085;
+    -webkit-box-shadow: 2px 2px 1px rgba(0,0,0,0.1);
+    box-shadow: 2px 2px 1px rgba(0,0,0,0.1);
+}
+
+.form-style-5 input[type="submit"]:hover,
+.form-style-5 input[type="button"]:hover
+{
+    background: #B2C4CF;
+}
+
+.currently-running{
+    margin-top:50px;
+}
+
+.single-query{
+    font-size: 14px;
+    float: left;
+    width: 400px;
+    padding: 10px;
+    background: #DCE3E8;
+    color: #ACB8BF;
+    position:relative;
+    margin-right: 20px;
+    margin-bottom: 20px;
+    font-family: 'PT Mono', ;
+}
+
+.shadow {
+  -webkit-box-shadow: 2px 2px 2px rgba(0, 0, 0, 0.1);  /* Safari 3-4, iOS 4.0.2 - 4.2, Android 2.3+ */
+  -moz-box-shadow:    2px 2px 2px rgba(0, 0, 0, 0.1);  /* Firefox 3.5 - 3.6 */
+  box-shadow:         2px 2px 2px rgba(0, 0, 0, 0.1);  /* Opera 10.5, IE 9, Firefox 4+, Chrome 6+, iOS 5 */
+}
+
+.x-button{
+    font-size: 20px;
+    position: absolute;
+    top: 5px;
+    right: 10px;
+}
+
+.x-button:hover{
+    color: #80A6BF;
+    cursor: pointer;
+}
