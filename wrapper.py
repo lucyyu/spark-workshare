@@ -1,5 +1,11 @@
 import inspect
 
+LOG = 0
+
+def log(s):
+    if LOG == 1:
+        print s
+
 def make_hashkey(name, args, kwargs):
     hn = name
     ha = []
@@ -224,138 +230,161 @@ class ScanSharingWrapper(CommonSubqueryWrapper):
         return ffn
 
     def __eval__(self):
-        print "\n - - - ENTERING EVAL. self._deferred = ", self._deferred, " - - - \n"
+        log("\n>>> - - ENTERING EVAL. self._deferred = %s - - >>> \n" % (self._deferred,))
         if self._cache_present:
-            print "cache present."
+            log("+ Cache present.")
             pass
         elif not self._deferred:
-            print "No cache present. Root reached. "
+            log("+ No cache present. Root reached.")
             self._cached = self._wrapped
             self._cached.cache()
         else:
             name, args, kwargs = self._deferred
-            print "Evaluating _wrapped:"
+            log("+ No cache present. Evaluating _wrapped:")
             parent = self._wrapped.__eval__()
 
             # Bind to a local variable to prevent Spark from trying to pickle self.
             tasks = self._wrapped._tasks.get(name)
 
             if name == "filter":
-                print "computing megaresult for filter. tasks: ", tasks
-#                megaresult = self.__getmegaresult__(
-#                    name, parent, lambda item: any(task(item) for task in tasks))
-#                self._cached = megaresult.filter(*args, **kwargs)
-                #print "filter self._cached: ", self._cached
-                megaresult = self.__getmegaresult2__(name, parent, tasks)
-                print "Megaresult: ", megaresult
+                log("+ Computing megaresult for FILTER. tasks: %s" % (tasks,))
+
+                megaresult = self.__getmegaresult__(name, parent, tasks)
+                log("+ Megaresult: %s" % megaresult)
+
                 index = self._wrapped._tasks[name].index(args[0])
-                print "Index: ", index
+                log("+ Index: %s" % index)
+
                 self._cached = megaresult[index]
-                print "filter self._cached: ", self._cached
+
+            elif name == "oldfilter":
+                log("+ Computing megaresult for OLDFILTER. tasks: %s" % (tasks,))
+
+                megaresult = self.__oldgetmegaresult__("filter", parent, lambda item: any(task(item) for task in tasks))
+                log("+ Megaresult: %s" % megaresult)
+
+                self._cached = megaresult.filter(*args, **kwargs)
 
             elif name == "map":
-#                megaresult = self.__getmegaresult__(
-#                    name, parent, lambda item: [task(item) for task in tasks])
-#                index = self._wrapped._tasks[name].index(args[0])
-#                self._cached = megaresult.map(lambda item: item[index])
-                megaresult = parent.multiMap()
+                log("+ Computing megaresult for MAP. tasks: %s" % (tasks,))
+
+                megaresult = self.__getmegaresult__(name, parent, tasks)
+                log("+ Megaresult: %s" % megaresult)
+
                 index = self._wrapped._tasks[name].index(args[0])
+                log("+ Index: %s" % index)
+
                 self._cached = megaresult[index] 
 
             elif name == "aggregate":
-                #print "evaluating agg in ScanSharingWrapper"
+                log("+ Computing megaresult for AGGREGATE. tasks: %s" % (tasks,))
 
-                if name not in self._wrapped._results:
-#                    print "computing megaresult for agg. tasks: ", tasks
-                    zeroValues = [v[0] for v in tasks]
-                    def seqOp(accumulatedVal, newVal):
-                        result = [None] * len(tasks)
-                        for i in xrange(len(tasks)):
-                            result[i] = tasks[i][1](accumulatedVal[i], newVal)
-                        return result
-                    def combOp(result1, result2):
-                        result = [None] * len(tasks)
-                        for i in xrange(len(tasks)):
-                            result[i] = tasks[i][2](result1[i], result2[i])
-                        return result
-                    self._wrapped._results[name] = parent.aggregate(
-                        zeroValues, seqOp, combOp)
-                else: 
-#                    print "megaresult already computed"
-                    pass
+                megaresult = self.__getmegaresult__(name, parent, tasks)
+                log("+ Megaresult: %s" % megaresult)
 
-                megaresult = self._wrapped._results[name]
-#                print "megaresult: ", megaresult
                 index = self._wrapped._tasks[name].index(args)
-                #print "args: ", args
-                #print "index: ", index, "\n"
+                log("+ Index: %s" % index)
+
                 self._cached = megaresult[index]
 
             elif name == "aggregateByKey":
-                #print "evaluatinging agg in ScanSharingWrapper"
+                log("+ Computing megaresult for AGGREGATEBYKEY. tasks: %s" % (tasks,))
 
-                if name not in self._wrapped._results:
-                    zeroValues = [v[0] for v in tasks]
-                    def seqOp(accumulatedVal, newVal):
-                        result = [None] * len(tasks)
-                        for i in xrange(len(tasks)):
-                            result[i] = tasks[i][1](accumulatedVal[i], newVal)
-                        return result
-                    def combOp(result1, result2):
-                        result = [None] * len(tasks)
-                        for i in xrange(len(tasks)):
-                            result[i] = tasks[i][2](result1[i], result2[i])
-                        return result
-                    self._wrapped._results[name] = parent.aggregateByKey(
-                        zeroValues, seqOp, combOp)
-                else:
-                    #print "megaresult already computed"
-                    pass
-
-                megaresult = self._wrapped._results[name]
-                #print "megaresult.take(10): ", self._wrapped._results[name].take(10) 
+                megaresult = self.__getmegaresult__(name, parent, tasks)
+                log("+ Megaresult: %s" % megaresult)
 
                 index = self._wrapped._tasks[name].index(args)
+                log("+ Index: %s" % index)
 
                 thisResult = megaresult.map(lambda x: (x[0], x[1][index]))
-                #print "thisResult: ", thisResult.take(10)
-                #print "args: ", args
-                #print "index: ", index, "\n"
                 self._cached = thisResult
 
             else:
                 self._cached = getattr(parent, name)(*args, **kwargs)
         
-        print "\n - - - EXITING EVAL - - - \n"
+        log("\n<<< - - EXITING EVAL - - <<< \n")
         self._cache_present = True
         return self._cached
 
-    def __getmegaresult__(self, name, parent, megaquery):
-        """
-        Gets the cached megaresult from the parent. If it hasn't been computed
-        yet, compute, cache and return it.
-        """
+    def __oldgetmegaresult__(self, name, parent, megaquery):
         if name not in self._wrapped._results:
-            #print "megaresult not yet computed"
-            self._wrapped._results[name] = getattr(parent, name)(megaquery)
+            log("\tMegaresult not yet computed:")
+            self._wrapped._results[name]=getattr(parent,name)(megaquery)
         else:
-            #print "map megaresult already previously computed"
             pass
         return self._wrapped._results[name]
 
-    def __getmegaresult2__(self, name, parent, tasks):
+    def __getmegaresult__(self, name, parent, tasks):
         if name not in self._wrapped._results:
-            print "Megaresult not yet computed:"
+            log("\tMegaresult not yet computed:")
+
             if name == "filter":
-                "Computing multiFilter: ", tasks
-                self._wrapped._results[name] = parent.multiFilter(tasks)
+                self.__computeMultiFilter__(parent, tasks)
             elif name == "map":
-                "Computing multiMap: ", tasks
-                self._wrapped._results[name] = parent.multiMap(tasks)                
+                self.__computeMultiMap__(parent, tasks)
+            elif name == "aggregate":
+                self.__computeMultiAggregate__(parent, tasks)    
+            elif name == "aggregateByKey":
+                self.__computeMultiAggregateByKey__(parent, tasks)                
         else:
-            print "Megaresult already previously computed. name: ", name
-            pass
+            if name == "aggregateByKey":
+                if len(self._wrapped._results[name].first()[1]) == len(tasks):
+                    log("\tMegaresult already previously computed. name: %s" % name)
+                    pass
+                else:
+                    log("\tMegaresult must be recomputed due to addition of another task:")
+                    self.__computeMultiAggregateByKey__(parent, tasks)                                        
+            elif len(self._wrapped._results[name]) == len(tasks):
+                log("\tMegaresult already previously computed. name: %s" % name)
+                pass
+            else:
+                log("\tMegaresult must be recomputed due to addition of another task:")
+                if name == "filter":
+                    self.__computeMultiFilter__(parent, tasks)
+                elif name == "map":
+                    self.__computeMultiMap__(parent, tasks)
+                elif name == "aggregate":
+                    self.__computeMultiAggregate__(parent, tasks)  
         return self._wrapped._results[name]
+
+    def __computeMultiFilter__(self, parent, tasks):
+        log("\tComputing multiFilter: %s" % (tasks,))
+        self._wrapped._results["filter"] = parent.multiFilter(tasks)
+
+    def __computeMultiMap__(self, parent, tasks):
+        log("\tComputing multiMap: %s" % (tasks,))
+        self._wrapped._results["map"] = parent.multiMap(tasks)
+
+    def __computeMultiAggregate__(self, parent, tasks):
+        log("\tComputing multiAggregate: %s" % (tasks,))
+        zeroValues = [v[0] for v in tasks]
+        def seqOp(accumulatedVal, newVal):
+            result = [None] * len(tasks)
+            for i in xrange(len(tasks)):
+                result[i] = tasks[i][1](accumulatedVal[i], newVal)
+            return result
+        def combOp(result1, result2):
+            result = [None] * len(tasks)
+            for i in xrange(len(tasks)):
+                result[i] = tasks[i][2](result1[i], result2[i])
+            return result
+        self._wrapped._results["aggregate"] = parent.aggregate(zeroValues, seqOp, combOp)  
+
+    def __computeMultiAggregateByKey__(self, parent, tasks):
+        log("\tComputing multiAggregateByKey: %s" % (tasks,))
+        zeroValues = [v[0] for v in tasks]
+        def seqOp(accumulatedVal, newVal):
+            result = [None] * len(tasks)
+            for i in xrange(len(tasks)):
+                result[i] = tasks[i][1](accumulatedVal[i], newVal)
+            return result
+        def combOp(result1, result2):
+            result = [None] * len(tasks)
+            for i in xrange(len(tasks)):
+                result[i] = tasks[i][2](result1[i], result2[i])
+            return result
+        self._wrapped._results["aggregateByKey"] = parent.aggregateByKey(zeroValues, seqOp, combOp)        
+
 
 class AggregateWrapper(ScanSharingWrapper):
 
@@ -368,7 +397,6 @@ class AggregateWrapper(ScanSharingWrapper):
                 if len(kwargs) != 0:
                     raise ValueError("%s does not take keyword arguments" % name)
                 f = args[0]
-                #print "\nargs[0]: ", args[0]
                 def combOp(a, b):
                     if a is None and b is None:
                         return None
@@ -381,8 +409,6 @@ class AggregateWrapper(ScanSharingWrapper):
                     if acc is None:
                         return val
                     return f(acc, val)
-                #print "combOp: ", combOp
-                #print "seqOp: ", seqOp, "\n"
                 return fn(None, seqOp, combOp)
             return ffn
 
@@ -394,7 +420,6 @@ class AggregateWrapper(ScanSharingWrapper):
                 if len(kwargs) != 0:
                     raise ValueError("%s does not take keyword arguments" % name)
                 f = args[0]
-                #print "\nargs[0]: ", args[0]
                 def combOp(a, b):
                     if a is None and b is None:
                         return None
@@ -407,8 +432,6 @@ class AggregateWrapper(ScanSharingWrapper):
                     if acc is None:
                         return val
                     return f(acc, val)
-                #print "combOp: ", combOp
-                #print "seqOp: ", seqOp, "\n"
                 return fn(None, seqOp, combOp)
             return ffn
 

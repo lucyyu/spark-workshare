@@ -8,8 +8,142 @@ sc = pyspark.SparkContext(appName="FlexibleStreaming")
 sc.setLogLevel("ERROR")
 
 
+def defaultFilterSparkWithoutCaching(f):
+	rdd = sc.textFile(f)
+
+	json_rdd = rdd.map(lambda x: json.loads(x))
+	text_rdd = json_rdd.filter(lambda json_keys: 'text' in json_keys).map(lambda x: x['text'])
+
+	transform_rdd = text_rdd.map(lambda x: len(x))
+
+	start_time = time.time()
+
+	def f1(x):
+		return x%2==1
+	def f2(x):
+		return x%2==0
+	def f3(x):
+		return x%3==0
+	def f4(x):
+		return x%3==1
+	def f5(x):
+		return x%3==2
+	def f6(x):
+		return x%4==0
+	def f7(x):
+		return x%4==1
+	job1 = transform_rdd.filter(f1)
+	job2 = transform_rdd.filter(f2)
+	job3 = transform_rdd.filter(f3)
+	job4 = transform_rdd.filter(f4)
+	job5 = transform_rdd.filter(f5)
+	job6 = transform_rdd.filter(f6)
+	job7 = transform_rdd.filter(f7)
+
+	job1.collect()
+	job2.collect()
+	job3.collect()
+	job4.collect()
+	job5.collect()
+	job6.collect()
+	job7.collect()
+
+	end_time = time.time()
+	print "--- %s seconds ---" % (end_time - start_time)
+
+def defaultFilterWrapped(f):
+	rdd = sc.textFile(f)
+
+	json_rdd = rdd.map(lambda x: json.loads(x))
+	text_rdd = json_rdd.filter(lambda json_keys: 'text' in json_keys).map(lambda x: x['text'])
+
+	transform_rdd = text_rdd.map(lambda x: len(x))
+
+	wrapped = wrapper.AggregateWrapper(transform_rdd)
+	start_time = time.time()
+
+	def f1(x):
+		return x%2==1
+	def f2(x):
+		return x%2==0
+	def f3(x):
+		return x%3==0
+	def f4(x):
+		return x%3==1
+	def f5(x):
+		return x%3==2
+	def f6(x):
+		return x%4==0
+	def f7(x):
+		return x%4==1
+	job1 = wrapped.filter(f1)
+	job2 = wrapped.filter(f2)
+	job3 = wrapped.filter(f3)
+
+	job4 = wrapped.filter(f4)
+	job5 = wrapped.filter(f5)
+	job6 = wrapped.filter(f6)
+	job7 = wrapped.filter(f7)
+
+	job1.collect().__eval__()
+	job2.collect().__eval__()
+	job3.collect().__eval__()
+	job4.collect().__eval__()
+	job5.collect().__eval__()
+	job6.collect().__eval__()
+	job7.collect().__eval__()
+
+	end_time = time.time()
+	print "--- %s seconds ---" % (end_time - start_time)
 
 
+def defaultOldFilterWrapped(f):
+	rdd = sc.textFile(f)
+
+	json_rdd = rdd.map(lambda x: json.loads(x))
+	text_rdd = json_rdd.filter(lambda json_keys: 'text' in json_keys).map(lambda x: x['text'])
+
+	transform_rdd = text_rdd.map(lambda x: len(x))
+
+	wrapped = wrapper.AggregateWrapper(transform_rdd)
+	start_time = time.time()
+
+	def f1(x):
+		return x%2==1
+	def f2(x):
+		return x%2==0
+	def f3(x):
+		return x%3==0
+	def f4(x):
+		return x%3==1
+	def f5(x):
+		return x%3==2
+	def f6(x):
+		return x%4==0
+	def f7(x):
+		return x%4==1
+	job1 = wrapped.filter2(f1)
+	job2 = wrapped.filter2(f2)
+	job3 = wrapped.filter2(f3)
+
+	job4 = wrapped.filter2(f4)
+	job5 = wrapped.filter2(f5)
+	job6 = wrapped.filter2(f6)
+	job7 = wrapped.filter2(f7)
+
+	job1.collect().__eval__()
+	job2.collect().__eval__()
+	job3.collect().__eval__()
+	job4.collect().__eval__()
+	job5.collect().__eval__()
+	job6.collect().__eval__()
+	job7.collect().__eval__()
+
+	end_time = time.time()
+	print "--- %s seconds ---" % (end_time - start_time)
+
+
+# 7 reduceByKey jobs
 def defaultSparkWithoutCaching(f):
 	rdd = sc.textFile(f)
 
@@ -105,6 +239,7 @@ def wrapped(f):
 	end_time = time.time()
 	print "--- %s seconds ---" % (end_time - start_time)
 
+# 6 aggregateByKey jobs
 def defaultSparkWithoutCachingAggregateByKey(f):
 	rdd = sc.textFile(f)
 
@@ -220,6 +355,7 @@ def filterScratch():
 	kwargs2 = {}
 	print wrapper.make_hashkey(name2, args2, kwargs2)
 
+# filter followed by aggregateByKey
 def complexWithoutCaching(f):
 	rdd = sc.textFile(f)
 
@@ -308,6 +444,4 @@ if __name__ == "__main__":
 	practice = "/Users/lucy/flexible-spark-curr/data/tweets-1450352666530.txt"
 	large = "/Users/lucy/flexible-spark-curr/largedata/large.txt" #287 MB
 	largest = "/Users/lucy/flexible-spark-curr/largedata/largest.txt" #476 MB
-	complexWithoutCaching(large)
-	complexWithCaching(large)
-	complexWrapped(large)
+	defaultFilterWrapped(largest)

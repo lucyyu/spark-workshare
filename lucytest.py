@@ -18,6 +18,28 @@ def testReduceCorrectness():
     print "parent's _tasks: ", x._tasks, "\n"
     print "parent's _results: ", x._results, "\n"
 
+# test that wrapper calculates correct basic aggregate
+def testBasicAggregateCorrectness():
+    rdd = sc.parallelize([1,2,3,4,5,6,7])
+    x = wrapper.AggregateWrapper(rdd)
+
+    a1 = x.aggregate(0, lambda x,y:x+y, lambda x,y:x+y)
+    a2 = x.aggregate(0, lambda x,y:max(x,y), lambda x,y: max(x,y))
+
+    result = a1.__eval__()
+    print "result of a1.__eval__(): ", result, "\n"
+
+    result2 = a2.__eval__()
+    print "result of a2.__eval__(): ", result2, "\n"
+
+    print "parent's _tasks: ", x._tasks, "\n"
+    print "parent's _results: ", x._results, "\n"    
+
+    a3 = x.aggregate(10, lambda x,y:min(x,y), lambda x,y: min(x,y))
+
+    result3 = a3.__eval__()
+    print "result of a3.__eval__(): ", result3, "\n"
+
 # test wrapper calculates correct basic aggregateByKey
 def testAggregateByKeyCorrectness():
     rdd = sc.parallelize([("a", 1), ("b", 1), ("a", 1)])
@@ -53,6 +75,16 @@ def testBasicFilterCorrectness():
     result = y.__eval__()
     print "result of y.__eval__(): ", result.take(10)
 
+def testBasicFilterCorrectness2():
+    rdd = sc.parallelize([1,2,3,4,5,6,7])
+    x = wrapper.AggregateWrapper(rdd)
+
+    y = x.filter(lambda x: True)
+    print "y object (hopefully is RDD): ", y
+    result = y.take(10)
+    print "result of y.take(10).__eval__(): ", result.__eval__()
+
+
 # test wrapper calculates correct filter results when multiple filters applied
 def testComplexFilterCorrectness():
     rdd = sc.parallelize([1,2,3,4,5,6,7,8,9,10,11,12,13,14])
@@ -72,6 +104,12 @@ def testComplexFilterCorrectness():
     print "x_f1._tasks: ", x_f1._tasks
     result3 = f1_f3.__eval__()
     print "f1_f3.__eval__(): ", result3.take(10)
+
+    x_f4 = x.filter(lambda x: x > 10)
+    print "x._tasks: ", x._tasks
+
+    result4 = x_f4.__eval__()
+    print "x_f4.__eval__(): ", result4.take(10)
 
 
 # test my multiFilter(f) in rdd.py
@@ -118,4 +156,4 @@ sc = pyspark.SparkContext(appName="FlexibleStreaming")
 sc.setLogLevel("ERROR")
 
 if __name__ == "__main__":
-    testComplexFilterCorrectness()
+    testBasicFilterCorrectness2()
